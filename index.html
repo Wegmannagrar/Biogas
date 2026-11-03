@@ -261,7 +261,7 @@ details[open] summary::before{transform:rotate(90deg)}
 <div class="row"><label for="eta">Wirkungsgrad el. (%)</label><input id="eta" type="text" inputmode="decimal"></div>
 <div class="row"><label for="etat">Wirkungsgrad th. (%)</label><input id="etat" type="text" inputmode="decimal"></div>
 <button class="g" id="reset">Auf Standard zurücksetzen</button>
-<p class="mu" style="text-align:center;margin-top:14px">App-Version 3.27 · 03.11.2026</p>
+<p class="mu" style="text-align:center;margin-top:14px">App-Version 3.28 · 03.11.2026</p>
 </div>
 </div>
 </main>
@@ -293,7 +293,7 @@ const $=id=>document.getElementById(id);
 /* ▼▼▼ Bei GitHub-Version: hier die Web-App-Adresse aus Apps Script eintragen (endet auf /exec) ▼▼▼ */
 const API_URL="https://script.google.com/macros/s/AKfycbwB_pjO75izEGA0goq6pfTlWC1g2580q7hX7QuEeZ-hggTeKylLOBgXNlIS5Di197ouGQ/exec";
 /* ▲▲▲ */
-const APPV="3.27";
+const APPV="3.28";
 const GAS=!!(window.google&&google.script&&google.script.run);
 const GS=GAS||/^https:\/\/script\.google\.com\//.test(API_URL);
 const URLKEY=/*KEY_AUS_LINK*/"",URLPIN=/*PIN_AUS_LINK*/"";let pin=URLKEY||URLPIN;if(!pin){try{pin=localStorage.getItem("bg_key")||localStorage.getItem("bg_pin")||""}catch(e){}}let asking=false,appUrl="";
@@ -314,7 +314,7 @@ function setKey(k,url){pin=k;appUrl=url||appUrl;try{localStorage.setItem("bg_key
 function showKeyCard(fresh){const L=keyLink();if(!L)return;$("keycard").hidden=false;$("keylink").value=L;$("keyfresh").hidden=!fresh}
 let pinNo=false;function askPin(msg){if(asking||pinNo)return;asking=true;const p=prompt((msg?msg+"\n\n":"")+"PIN eingeben (nur einmal pro Gerät nötig):");asking=false;
  if(p==null||!p.trim()){pinNo=true;status("🔒 PIN erforderlich – Seite neu laden");return}
- status("Prüfe PIN …");callRaw("registerDevice",[p.trim(),devName()]).then(r=>{setKey(r.key,r.url);refresh();tab(4);devs()}).catch(e=>{String(e&&e.message||e).indexOf("PIN")>=0?askPin("❌ PIN falsch."):status("⚠️ Keine Verbindung: "+(e&&e.message||e))})}
+ status("Prüfe PIN …");callRaw("registerDevice",[p.trim(),devName()]).then(r=>{setKey(r.key,r.url);refresh();if(GAS){tab(4);devs()}else{tab(1);status("✅ Gerät freigeschaltet")}}).catch(e=>{String(e&&e.message||e).indexOf("PIN")>=0?askPin("❌ PIN falsch."):status("⚠️ Keine Verbindung: "+(e&&e.message||e))})}
 function fail(e){const m=String(e&&e.message||e);if(m.indexOf("STALE")>=0){status("⚠️ Einstellungen wurden inzwischen aktualisiert – bitte die letzte Änderung wiederholen");run("getAll").then(d=>{if(d&&d.cfg){cfg=fixCfg(d.cfg);build();table();lbuild&&lbuild()}apply(d)}).catch(()=>{});return}if(m.indexOf("PIN")>=0){try{localStorage.removeItem("bg_key")}catch(x){}askPin(pin?"Dieses Gerät ist nicht (mehr) freigeschaltet.":"")}else status("⚠️ Keine Verbindung – Eingaben nur auf diesem Gerät. "+m)}
 function now(){return new Date().toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"})}
 
