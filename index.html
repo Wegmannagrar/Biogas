@@ -69,6 +69,8 @@ nav button.on{color:var(--ac);background:var(--ac2)}
 #bar span{flex:1}
 #bar button{width:auto;background:#fff;color:var(--warn);min-height:42px;padding:8px 16px}
 [hidden]{display:none!important}
+.stack{margin-bottom:10px}.stack label{display:block;margin-bottom:4px}
+textarea{font:inherit;font-size:17px;color:var(--tx);background:var(--bg);border:1px solid var(--bd);border-radius:10px;padding:10px 12px;width:100%;min-height:46px;resize:vertical;-webkit-appearance:none;appearance:none;line-height:1.35}textarea:focus{outline:2px solid var(--ac);outline-offset:0}
 .kgw{position:relative;width:46%;max-width:220px;display:block}.kgw input{width:100%!important;max-width:none!important;padding-right:38px;cursor:pointer}.kgw i{position:absolute;right:12px;top:50%;transform:translateY(-50%);font-style:normal;color:var(--mu);pointer-events:none}
 .mdl{position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.45);display:flex;align-items:flex-end;justify-content:center}
 .mdlb{background:var(--card);width:100%;max-width:600px;border-radius:18px 18px 0 0;padding:18px 16px calc(18px + env(safe-area-inset-bottom,0px));box-shadow:0 -6px 24px rgba(0,0,0,.25)}
@@ -103,7 +105,7 @@ details[open] summary::before{transform:rotate(90deg)}
 </div>
 <h3>Mengen dieser Fütterung</h3>
 <div id="inputs"></div>
-<div class="row"><label for="fbem">Bemerkung</label><input id="fbem" type="text" placeholder="optional" style="text-align:left"></div>
+<div class="stack"><label for="fbem">Bemerkung</label><textarea id="fbem" rows="1" placeholder="optional"></textarea></div>
 <div class="kpi bad" id="fwarn" hidden style="display:none"></div>
 <p class="mu" id="fmsg"></p>
 <button class="g" id="fex" style="margin:0 0 10px">⚡ Extra-Fütterung (wegen Gasmangel)</button>
@@ -124,7 +126,7 @@ details[open] summary::before{transform:rotate(90deg)}
 <div class="row"><label for="ann">Angemeldet (kWh)<div class="mu">eure Planung bei e2m</div></label><input id="ann" type="text" inputmode="numeric" pattern="[0-9]*" placeholder="Anmeldung" autocomplete="off"></div>
 <div class="row" style="margin-top:4px"><label>Gas im Speicher</label></div>
 <div class="seg" id="gzs"><button data-gz="-1">zu wenig</button><button data-gz="0">passt</button><button data-gz="1">zu viel</button></div>
-<div class="row"><label for="dnote">Notiz zum Tag</label><input id="dnote" type="text" placeholder="z. B. Nachgärer wieder voll" style="text-align:left"></div>
+<div class="stack"><label for="dnote">Notiz zum Tag</label><textarea id="dnote" rows="2" placeholder="z. B. Nachgärer wieder voll"></textarea></div>
 <button class="g" id="dsave">Tageswerte speichern</button>
 </div>
 </div>
@@ -141,7 +143,7 @@ details[open] summary::before{transform:rotate(90deg)}
 <div><label for="lt">Tara (kg)</label><input id="lt" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off"></div>
 </div>
 <div class="row" id="lnr" hidden><label for="ln">Menge (kg)</label><input id="ln" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off"></div>
-<div class="row"><label for="lbem">Lieferschein / Bemerkung</label><input id="lbem" type="text" placeholder="optional" style="text-align:left"></div>
+<div class="stack"><label for="lbem">Lieferschein / Bemerkung</label><textarea id="lbem" rows="1" placeholder="optional"></textarea></div>
 <div class="kpi" style="margin-bottom:10px"><b id="lnet">– kg</b><span>Nettomenge</span></div>
 <p class="mu" id="lmsg"></p>
 <button id="lsave">Lieferung speichern</button>
@@ -268,7 +270,7 @@ details[open] summary::before{transform:rotate(90deg)}
 <div class="row"><label for="eta">Wirkungsgrad el. (%)</label><input id="eta" type="text" inputmode="decimal"></div>
 <div class="row"><label for="etat">Wirkungsgrad th. (%)</label><input id="etat" type="text" inputmode="decimal"></div>
 <button class="g" id="reset">Auf Standard zurücksetzen</button>
-<p class="mu" style="text-align:center;margin-top:14px">App-Version 3.30 · 03.11.2026</p>
+<p class="mu" style="text-align:center;margin-top:14px">App-Version 3.31 · 03.11.2026</p>
 </div>
 </div>
 </main>
@@ -300,7 +302,7 @@ const $=id=>document.getElementById(id);
 /* ▼▼▼ Bei GitHub-Version: hier die Web-App-Adresse aus Apps Script eintragen (endet auf /exec) ▼▼▼ */
 const API_URL="https://script.google.com/macros/s/AKfycbwB_pjO75izEGA0goq6pfTlWC1g2580q7hX7QuEeZ-hggTeKylLOBgXNlIS5Di197ouGQ/exec";
 /* ▲▲▲ */
-const APPV="3.30";
+const APPV="3.31";
 const GAS=!!(window.google&&google.script&&google.script.run);
 const GS=GAS||/^https:\/\/script\.google\.com\//.test(API_URL);
 const URLKEY=/*KEY_AUS_LINK*/"",URLPIN=/*PIN_AUS_LINK*/"";let pin=URLKEY||URLPIN;if(!pin){try{pin=localStorage.getItem("bg_key")||localStorage.getItem("bg_pin")||""}catch(e){}}let asking=false,appUrl="";
