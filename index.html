@@ -327,7 +327,7 @@ const $=id=>document.getElementById(id);
 /* ▼▼▼ Bei GitHub-Version: hier die Web-App-Adresse aus Apps Script eintragen (endet auf /exec) ▼▼▼ */
 const API_URL="https://script.google.com/macros/s/AKfycbwB_pjO75izEGA0goq6pfTlWC1g2580q7hX7QuEeZ-hggTeKylLOBgXNlIS5Di197ouGQ/exec";
 /* ▲▲▲ */
-const APPV="3.33";
+const APPV="3.34";
 const GAS=!!(window.google&&google.script&&google.script.run);
 const GS=GAS||/^https:\/\/script\.google\.com\//.test(API_URL);
 const URLKEY=/*KEY_AUS_LINK*/"",URLPIN=/*PIN_AUS_LINK*/"";let pin=URLKEY||URLPIN;if(!pin){try{pin=localStorage.getItem("bg_key")||localStorage.getItem("bg_pin")||""}catch(e){}}let asking=false,appUrl="";
@@ -340,7 +340,10 @@ function status(t){$("sync").textContent=t}
 
 function callRaw(fn,args){if(GAS)return new Promise((ok,no)=>{google.script.run.withSuccessHandler(ok).withFailureHandler(no)[fn](...args)});
  return fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({fn,args})}).then(r=>{if(!r.ok)throw new Error("Server "+r.status);return r.json()}).then(j=>{if(!j||!j.ok)throw new Error((j&&j.e)||"Fehler");return j.r})}
-function run(fn,...a){busy++;return callRaw(fn,[pin,...a]).then(r=>{busy--;return r},e=>{busy--;throw e})}
+let wseq=0,drev="",rcnt=0;
+// Nur die Antwort der neuesten Änderung übernehmen; Abfragen, die vor einer Änderung gestartet wurden, verwerfen
+function run(fn,...a){busy++;const rd=fn==="getAll"||fn==="meinLink"||fn==="listDevices";const my=rd?wseq:++wseq;
+ return callRaw(fn,[pin,...a]).then(r=>{busy--;if(my!==wseq){if(fn==="saveCfg"&&r&&r.cfg)cfg.rev=r.cfg.rev;return null}return r},e=>{busy--;throw e})}
 function devName(){const u=navigator.userAgent;const t=/iPad|Macintosh.*Mobile|Macintosh(?=.*Safari)(?=.*Version)/.test(u)&&"ontouchend" in document?"iPad":/iPhone/.test(u)?"iPhone":/Android/.test(u)?"Android":"PC";const d=new Date();return t+" ("+d.getDate()+"."+(d.getMonth()+1)+"."+d.getFullYear()+")"}
 function keyLink(){const u=GAS?appUrl:location.origin+location.pathname;return u?u+"?key="+pin:""}
 function setKey(k,url){pin=k;appUrl=url||appUrl;try{localStorage.setItem("bg_key",k);localStorage.removeItem("bg_pin")}catch(e){}
@@ -359,14 +362,14 @@ function storeCfg(){cache();if(!GS)return;cfgPending=true;clearTimeout(cfgTimer)
  run("saveCfg",cfg,all).then(d=>{cfgBusy=false;cfgPending=false;if(d&&d.cfg)cfg.rev=d.cfg.rev;apply(d)}).catch(e=>{cfgBusy=false;cfgPending=false;fail(e)})},900)}
 function storeDay(k){cache();if(!GS)return;status("Speichere …");run("saveDay",k,hist[k],act[k]||"",comp(hist[k]),ann[k]==null?"":ann[k]).then(apply).catch(fail)}
 function inSettings(){const a=document.activeElement;return a&&a.closest&&a.closest("#set")}
-function apply(d){if(!d)return;
+function apply(d){if(!d)return;if(d.drev)drev=d.drev;if(d.same){status("🔗 "+now()+" · v"+APPV);return}
  if(d.cfg&&!cfgPending){const c=fixCfg(d.cfg);if(JSON.stringify(c)!==JSON.stringify(cfg)&&!inSettings()){cfg=c;build()}}
  hist=d.days||{};act=d.act||{};ann=d.ann||{};if(d.mess)mess=d.mess;if(d.gasm)gasm=d.gasm;if(d.zw)zw=d.zw;if(d.del)del=d.del;if(d.feeds)feeds=d.feeds;
  if(d.scale!==undefined&&document.activeElement!==$("wv")&&!$("wn").value&&!$("wv").dataset.user)$("wv").value=scaleParse(d.scale);
  cache();table();lrender();if(document.activeElement!==$("ll"))lbuild();
  const a=document.activeElement;if(!dirtyVals&&!(a&&(a.id==="act"||a.id==="ann")))dayVals();renderDay();render();
  status("🔗 "+now()+" · v"+APPV)}
-function refresh(){if(!GS||cfgPending||busy)return;run("getAll").then(apply).catch(fail)}
+function refresh(){if(!GS||cfgPending||busy)return;rcnt++;run("getAll",rcnt%15?drev:"").then(apply).catch(fail)}
 
 const f=(v,d=0)=>v.toLocaleString("de-DE",{maximumFractionDigits:d,minimumFractionDigits:d});
 function isNW(s){return s.nw!=null?s.nw:/mais|pferd|zucker|rübe/i.test(s.n)}
@@ -819,7 +822,7 @@ try{const D=JSON.parse(localStorage.getItem("bg_fd")||"null");if(D&&D.d===today(
  if(D.m&&cfg.subs[D.m.i]){mOpen(D.m.i);if(D.m.mode)mSet(D.m.mode);$("mv").value=D.m.v||"";$("mn").value=D.m.n||"";$("mx").value=D.m.x||"";mCalc()}render();renderDay()}}catch(e){}
 window.fdReady=1;
 try{const tb=+localStorage.getItem("bg_tab");if(tb>1&&tb<6)tab(tb)}catch(e){}
-let started=false;function start(){if(started)return;started=true;status("Verbinde …");if(pin)run("meinLink").then(u=>{appUrl=u}).catch(()=>{});run("getAll").then(d=>{if(pin&&pin.length<20)callRaw("registerDevice",[pin,devName()]).then(r=>setKey(r.key,r.url)).catch(()=>{});if(!d.cfg){run("saveCfg",cfg,{}).then(apply).catch(fail)}else apply(d)}).catch(fail);
+let started=false;function start(){if(started)return;started=true;status("Verbinde …");if(pin)run("meinLink").then(u=>{appUrl=u}).catch(()=>{});run("getAll").then(d=>{if(!d){setTimeout(refresh,800);return}if(pin&&pin.length<20)callRaw("registerDevice",[pin,devName()]).then(r=>setKey(r.key,r.url)).catch(()=>{});if(!d.cfg){run("saveCfg",cfg,{}).then(apply).catch(fail)}else apply(d)}).catch(fail);
  setInterval(()=>{if(!document.hidden)refresh()},20000);
  document.addEventListener("visibilitychange",()=>{if(!document.hidden)refresh()});
 }
