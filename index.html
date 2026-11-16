@@ -327,7 +327,7 @@ const $=id=>document.getElementById(id);
 /* ▼▼▼ Bei GitHub-Version: hier die Web-App-Adresse aus Apps Script eintragen (endet auf /exec) ▼▼▼ */
 const API_URL="https://script.google.com/macros/s/AKfycbwB_pjO75izEGA0goq6pfTlWC1g2580q7hX7QuEeZ-hggTeKylLOBgXNlIS5Di197ouGQ/exec";
 /* ▲▲▲ */
-const APPV="3.34";
+const APPV="3.37";
 const GAS=!!(window.google&&google.script&&google.script.run);
 const GS=GAS||/^https:\/\/script\.google\.com\//.test(API_URL);
 const URLKEY=/*KEY_AUS_LINK*/"",URLPIN=/*PIN_AUS_LINK*/"";let pin=URLKEY||URLPIN;if(!pin){try{pin=localStorage.getItem("bg_key")||localStorage.getItem("bg_pin")||""}catch(e){}}let asking=false,appUrl="";
@@ -406,13 +406,15 @@ function renderDay(){if($("gpm"))gPre();const d=$("date").value,L=dayFeeds(d),to
  if(!L.length)h=tot>0?`<div class="chip"><div><b>Tagessumme</b> · ${f(tot)} kg <span class="mu">(ohne Einzelfütterungen)</span><div class="mu">${brk(hist[d])}</div></div></div><p class="mu">Neue Fütterungen an diesem Tag werden zu dieser Summe addiert.</p>`:'<p class="mu">Noch keine Fütterung an diesem Tag.</p>';
  else if(L.length>1)h+=`<div class="chip"><b>Summe ${L.length} Fütterungen</b><b>${f(tot)} kg</b></div>`;
  $("flist").innerHTML=h;$("prevh").textContent=cur().some(v=>v>0)?"Tagessumme inkl. der neuen Eingabe":"Tagessumme";
- document.querySelectorAll("#flist button[data-fe]").forEach(b=>b.onclick=()=>{const x=feeds.find(y=>y.id===b.dataset.fe);if(!x)return;editId=x.id;cfg.subs.forEach((_,i)=>$("a"+i).value=x.a[i]||"");$("ft").value=x.t||"";$("ft").dataset.user=1;$("fbem").value=bemTxt(x);exSet(isEx(x));wlog=(x.w||[]).map(e=>({i:e.i,v:e.v,n:e.n,kg:e.kg,t:e.t}));wsave();wlogRender();dirty=true;$("save").textContent="Änderung speichern";$("fcancel").hidden=false;render();renderDay();scrollTo(0,0)});
+ document.querySelectorAll("#flist button[data-fe]").forEach(b=>b.onclick=()=>{const x=feeds.find(y=>y.id===b.dataset.fe);if(!x)return;if(!editId&&cur().some(v=>v>0)){stash={a:cur(),w:wlog.slice(),ft:$("ft").value,ftu:!!$("ft").dataset.user,b:$("fbem").value,ex:exOn};$("fmsg").textContent="Deine neue, noch nicht gespeicherte Eingabe ("+f(stash.a.reduce((p,q)=>p+q,0))+" kg) ist zurückgestellt und kommt nach dem Bearbeiten wieder."}editId=x.id;cfg.subs.forEach((_,i)=>$("a"+i).value=x.a[i]||"");$("ft").value=x.t||"";$("ft").dataset.user=1;$("fbem").value=bemTxt(x);exSet(isEx(x));wlog=(x.w||[]).map(e=>({i:e.i,v:e.v,n:e.n,kg:e.kg,t:e.t}));wlogRender();dirty=true;$("save").textContent="Änderung speichern";$("fcancel").hidden=false;render();renderDay();scrollTo(0,0)});
  document.querySelectorAll("#flist button[data-fd]").forEach(b=>b.onclick=()=>{const x=feeds.find(y=>y.id===b.dataset.fd);if(!x||!confirm(`Fütterung löschen?\n${x.d.split("-").reverse().join(".")} ${x.t||""} · ${f(x.a.reduce((p,q)=>p+(q||0),0))} kg`))return;
   feeds=feeds.filter(y=>y.id!==x.id);hist[x.d]=sumA(dayFeeds(x.d).map(y=>y.a));if(editId===x.id)clearForm();cache();table();renderDay();render();
   if(GS){status("Lösche …");run("deleteFeeding",x.id).then(apply).catch(fail)}})}
 const EXM="[Extra]";function isEx(x){return /^\[Extra\]/.test(x.bem||"")}function bemTxt(x){return (x.bem||"").replace(/^\[Extra\]\s*/,"").replace(/^\[Gülle\]\s*/,"")}
 let exOn=false;function exSet(v){exOn=v;$("fex").className=v?"g on":"g";$("fex").textContent=v?"⚡ Extra-Fütterung – aktiv":"⚡ Extra-Fütterung"}
-function clearForm(){exSet(false);fdClear();if($("ft")){delete $("ft").dataset.user;setTimeout(ftAuto,0)}wlog=[];wsave();if($("wlog"))wlogRender();cfg.subs.forEach((_,i)=>$("a"+i).value="");$("ft").value="";$("fbem").value="";editId=null;dirty=false;$("save").textContent="Fütterung speichern";$("fcancel").hidden=true;render()}
+function clearForm(){exSet(false);fdClear();editId=null;if($("ft")){delete $("ft").dataset.user;setTimeout(ftAuto,0)}wlog=[];wsave();if($("wlog"))wlogRender();cfg.subs.forEach((_,i)=>$("a"+i).value="");$("ft").value="";$("fbem").value="";editId=null;dirty=false;$("save").textContent="Fütterung speichern";$("fcancel").hidden=true;
+ if(stash){const S=stash;stash=null;S.a.forEach((v,i)=>{if($("a"+i))$("a"+i).value=v||""});wlog=S.w||[];wsave();wlogRender();$("fbem").value=S.b||"";exSet(!!S.ex);if(S.ftu){$("ft").value=S.ft;$("ft").dataset.user=1}dirty=true;setTimeout(()=>{$("fmsg").textContent="Deine zurückgestellte Eingabe ist wieder da – noch nicht gespeichert."},50)}
+ render()}
 function facOf(L){const a=L.reduce((s2,k)=>s2+act[k],0),b=L.reduce((s2,k)=>s2+calc(hist[k]).el,0);return b>0?Math.min(1.3,Math.max(0.7,a/b)):1}
 function calInfo(){const fed=Object.keys(hist).filter(k=>(hist[k]||[]).some(v=>v>0)).sort(),ok=k=>act[k]&&k<today(),cf=cfg.calFrom||"";
  const neu=fed.filter(k=>ok(k)&&(!cf||k>=cf)).slice(-21);if(neu.length>=3)return{fac:facOf(neu),n:neu.length,mode:cf?"neu":"normal"};
@@ -428,7 +430,14 @@ function usedSince(i,ts,ex){ex=ex||[];const d0=ts.slice(0,10),t0=ts.slice(11);le
  Object.keys(hist).forEach(d=>{if(d>d0&&!fd[d])u+=(hist[d]||[])[i]||0});return u}
 function delSince(name,ts,ex){ex=ex||[];const d0=ts.slice(0,10),t0=ts.slice(11);return del.filter(x=>x.a===name&&ex.indexOf(x.id)<0&&(x.d>d0||(x.d===d0&&(x.t||"")>=t0))).reduce((s,x)=>s+(x.n||0),0)}
 function avgUse(i){const fed=doneDays().slice(-7);return fed.length?fed.reduce((s,k)=>s+((hist[k]||[])[i]||0),0)/fed.length:0}
-function stockOf(i){const s=cfg.subs[i],st=cfg.stock[s.n];if(!st)return null;return st.v+delSince(s.n,st.ts,st.ex)-usedSince(i,st.ts,st.ex)}
+// Bestand der Reihe nach: Lieferungen +, Fütterungen −, nie unter 0 (leeres Lager kann nicht weiter abnehmen)
+const stockShort={};
+function stockOf(i){const s=cfg.subs[i],st=cfg.stock[s.n];if(!st)return null;const ex=st.ex||[],d0=st.ts.slice(0,10),t0=st.ts.slice(11),E=[],fd={};
+ const after=(d,t)=>d>d0||(d===d0&&t>=t0);
+ del.forEach(x=>{if(x.a===s.n&&ex.indexOf(x.id)<0&&after(x.d,x.t||""))E.push([x.d+" "+(x.t||"00:00"),0,x.n||0])});
+ feeds.forEach(x=>{fd[x.d]=1;if(ex.indexOf(x.id)<0&&x.t&&after(x.d,x.t)&&(x.a[i]||0))E.push([x.d+" "+x.t,1,-(x.a[i]||0)])});
+ Object.keys(hist).forEach(d=>{if(d>d0&&!fd[d]&&((hist[d]||[])[i]||0))E.push([d+" 23:59",1,-hist[d][i]])});
+ E.sort((a,b)=>a[0]<b[0]?-1:a[0]>b[0]?1:a[1]-b[1]);let v=st.v,sh=0;E.forEach(e=>{v+=e[2];if(v<0){sh+=-v;v=0}});stockShort[s.n]=sh;return v}
 function dPlus(n){return new Date(new Date(today()+"T12:00:00").getTime()+n*864e5)}
 function wd(d){return ["So","Mo","Di","Mi","Do","Fr","Sa"][d.getDay()]+" "+String(d.getDate()).padStart(2,"0")+"."+String(d.getMonth()+1).padStart(2,"0")+"."}
 function stockRender(){if(!$("stock"))return;
@@ -436,7 +445,8 @@ function stockRender(){if(!$("stock"))return;
   if(b==null)return `<div class="chip"><div><b>${esc(s.n)}</b><div class="mu">kein Lager geführt${use?" · Verbrauch Ø "+qty(s.n,use)+"/Tag":""}</div></div><button class="x" style="font-size:.85rem;color:var(--ac)" data-st="${i}">Lager führen</button></div>`;
   const days=use>0?b/use:Infinity,col=b<0?"#d32f2f":days<3?"#d32f2f":days<7?"#e65100":"var(--ac)";
   return `<div class="chip" style="display:block"><div style="display:flex;justify-content:space-between;align-items:baseline"><b>${esc(s.n)}</b><b style="color:${col}">${f(Math.max(b,0)/1000,1)} ${isGn(s.n)?"m³":"t"}</b></div>
-  <div class="mu">${b<0?"⚠️ Rechnerisch "+qty(s.n,b)+" – bitte Bestand neu setzen":use>0?`reicht ca. <b style="color:${col}">${f(Math.floor(days))} Tage</b> (bis ${wd(dPlus(Math.floor(days)))}) · Verbrauch Ø ${qty(s.n,use)}/Tag`:"zurzeit kein Verbrauch"}${use>0&&b>=0&&days<14?` · <b>Nachschub bis ${wd(dPlus(Math.max(0,Math.floor(days)-2)))}</b>`:""}</div>
+  <div class="mu">${use>0?`reicht ca. <b style="color:${col}">${f(Math.floor(days))} Tage</b> (bis ${wd(dPlus(Math.floor(days)))}) · Verbrauch Ø ${qty(s.n,use)}/Tag`:"zurzeit kein Verbrauch"}${use>0&&b>=0&&days<14?` · <b>Nachschub bis ${wd(dPlus(Math.max(0,Math.floor(days)-2)))}</b>`:""}</div>
+  ${stockShort[s.n]>0?`<div class="mu" style="color:#e65100">ℹ️ Seit „gesetzt am“ wurden ${qty(s.n,stockShort[s.n])} mehr verfüttert, als laut App da war – vielleicht fehlt eine Lieferung. Der Bestand wurde dabei bei 0 gehalten.</div>`:""}
   <div class="mu">${ld?`Letzte Lieferung ${ld.d.slice(8)}.${ld.d.slice(5,7)}. · ${esc(ld.l)} · ${qty(s.n,ld.n)}`:"Noch keine Lieferung erfasst"} · gesetzt am ${cfg.stock[s.n].ts.slice(8,10)}.${cfg.stock[s.n].ts.slice(5,7)}. auf ${qty(s.n,cfg.stock[s.n].v)}</div>
   <div style="display:flex;gap:8px;margin-top:6px"><button class="g" style="margin:0;min-height:40px;padding:6px" data-z="${i}">Leer (0)</button><button class="g" style="margin:0;min-height:40px;padding:6px" data-sv="${i}">Bestand setzen</button><button class="g" style="margin:0;min-height:40px;padding:6px;flex:0 0 auto;width:auto" data-so="${i}">✕</button></div></div>`}).join("");
  const setS=(i,v)=>{const ts=nowTs(),d0=ts.slice(0,10),t0=ts.slice(11),n=cfg.subs[i].n,ex=del.filter(x=>x.a===n&&x.d===d0&&(x.t||"")>=t0).map(x=>x.id).concat(feeds.filter(x=>x.d===d0&&x.t&&x.t>=t0).map(x=>x.id));cfg.stock[n]={v:v,ts:ts,ex:ex};storeCfg();stockRender();rec()};
@@ -655,7 +665,12 @@ $("save").onclick=()=>{const d=$("date").value,arr=cur(),tot=arr.reduce((x,y)=>x
  if(GS){status("Speichere …");run("saveFeeding",x).then(apply).catch(fail)}};
 $("fcancel").onclick=clearForm;
 $("fex").onclick=()=>exSet(!exOn);
-function ftAuto(){if(!$("ft").dataset.user&&document.activeElement!==$("ft"))$("ft").value=hhmm();dfill()}
+let dayNow=today();
+// App über Nacht offen: Datumsfelder auf den neuen Tag umstellen (außer jemand hat ein anderes Datum gewählt)
+function dayRoll(){const t=today();if(t===dayNow)return;const old=dayNow;dayNow=t;
+ if($("date").value===old&&!editId){$("date").value=t;dayVals();renderDay();render()}if($("ld").value===old)$("ld").value=t;table()}
+document.addEventListener("visibilitychange",()=>{if(!document.hidden)dayRoll()});
+function ftAuto(){dayRoll();if(!$("ft").dataset.user&&document.activeElement!==$("ft"))$("ft").value=hhmm();dfill()}
 $("ft").oninput=()=>{$("ft").dataset.user=1;dfill()};
 function dfill(){const el=$("dfill");if(!el)return;const q=cfg.dmg||0,I=Math.round((cfg.dint||0)*60);if(!(q>0)||!(I>0)){el.hidden=true;return}
  const hm=t=>{const m=String(t||"").match(/^(\d+):(\d+)/);return m?+m[1]*60+ +m[2]:null};const S=hm(cfg.dst||"08:00")||0,N=hm($("ft").value||hhmm());if(N==null){el.hidden=true;return}
@@ -670,7 +685,7 @@ $("csv").onclick=()=>{const ks=Object.keys(hist).sort();const t=["Datum;"+cfg.su
 try{navigator.clipboard.writeText(t);$("csv").textContent="Kopiert ✓"}catch(e){$("csv").textContent="Kopieren nicht möglich"}setTimeout(()=>$("csv").textContent="Als CSV kopieren",1500)};
 function wcalc(){const v=num($("wv").value),n=num($("wn").value);return v==null||n==null?null:Math.abs(n-v)}
 let wlog=[];try{const w=JSON.parse(localStorage.getItem("bg_wlog")||"null");if(w&&w.d===today())wlog=w.L||[]}catch(e){}
-function wsave(){try{localStorage.setItem("bg_wlog",JSON.stringify({d:today(),L:wlog}))}catch(e){}}
+let stash=null;function wsave(){if(editId)return;try{localStorage.setItem("bg_wlog",JSON.stringify({d:today(),L:wlog}))}catch(e){}}
 function scaleParse(v){v=String(v==null?"":v);const p=v.split("|");return p.length>1&&p[1]!==today()?"0":p[0]}
 function scaleStore(nv){const v=nv+"|"+today();try{localStorage.setItem("bg_w",v)}catch(e){}if(GS)run("saveScale",v).catch(()=>{})}
 function wchips(){const sel=+$("wsub").value||0;$("wchips").innerHTML=cfg.subs.map((s,i)=>isGn(s.n)?"":`<button class="wc${i===sel?" on":""}" data-wc="${i}">${esc(s.n.replace(/ \(.*\)/,""))}</button>`).join("");
@@ -680,7 +695,7 @@ function wlogRender(){if(!wlog.length){$("wlog").innerHTML="";return}
  $("wlog").innerHTML=`<h3 style="margin:12px 0 4px">Zugaben dieser Fütterung</h3>`+wlog.map((e,j)=>`<div class="chip"><div><select data-wl="${j}" style="width:auto;min-height:36px;padding:4px 28px 4px 8px;font-size:.95rem">${cfg.subs.map((s,i)=>`<option value="${i}"${i===e.i?" selected":""}>${esc(s.n.replace(/ \(.*\)/,""))}</option>`).join("")}</select> <b>${f(e.kg)} kg</b><div class="mu">${e.t} Uhr · Waage ${f(e.v)} → ${f(e.n)}</div></div><button class="x" data-wx="${j}">✕</button></div>`).join("")+`<p class="mu">Falsche Sorte erwischt? Bei der Zugabe einfach die richtige Sorte auswählen – die Menge wird umgebucht.</p>`;
  document.querySelectorAll("#wlog select[data-wl]").forEach(el=>el.onchange=()=>{const e=wlog[+el.dataset.wl],ni=+el.value;if(ni===e.i)return;$("a"+e.i).value=Math.max(0,Math.round(cur()[e.i]-e.kg))||"";$("a"+ni).value=Math.round(cur()[ni]+e.kg);e.i=ni;wsave();dirty=true;render();renderDay();wlogRender()});
  document.querySelectorAll("#wlog [data-wx]").forEach(b=>b.onclick=()=>{const j=+b.dataset.wx,e=wlog[j];if(!confirm(`Zugabe ${f(e.kg)} kg ${cfg.subs[e.i].n} entfernen?`))return;$("a"+e.i).value=Math.max(0,Math.round(cur()[e.i]-e.kg))||"";if(j===wlog.length-1){$("wv").value=e.v;scaleStore(e.v)}wlog.splice(j,1);wsave();render();renderDay();wlogRender()})}
-function fdSave(){try{localStorage.setItem("bg_fd",JSON.stringify({d:today(),a:cur(),wv:$("wv").dataset.user?$("wv").value:null,wn:$("wn").value,m:$("mdl").hidden?null:{i:mI,mode:mMode,v:$("mv").value,n:$("mn").value,x:$("mx").value}}))}catch(e){}}
+function fdSave(){try{localStorage.setItem("bg_fd",JSON.stringify({d:today(),e:editId,st:stash,a:cur(),wv:$("wv").dataset.user?$("wv").value:null,wn:$("wn").value,m:$("mdl").hidden?null:{i:mI,mode:mMode,v:$("mv").value,n:$("mn").value,x:$("mx").value}}))}catch(e){}}
 function fdClear(){try{localStorage.removeItem("bg_fd")}catch(e){}}
 $("wv").oninput=()=>{$("wv").dataset.user=1;wbtn();fdSave()};$("wn").oninput=()=>{wbtn();fdSave()};
 $("w0").onclick=()=>{$("wv").value="0";delete $("wv").dataset.user;scaleStore(0);wbtn();fdSave()};
@@ -817,7 +832,7 @@ $("zwsave").onclick=()=>{let v=num($("zwv").value);if(v!=null)v=Math.round(v);if
  if(GS)run("addZw",x).then(apply).catch(fail)};
 $("rz").oninput=()=>{$("rz").dataset.user=1;rec()};$("rp").oninput=rec;
 load();cfg=fixCfg(cfg);build();table();lrender();
-try{const D=JSON.parse(localStorage.getItem("bg_fd")||"null");if(D&&D.d===today()){if(D.a&&!cur().some(v=>v>0)&&D.a.some(v=>v>0)){D.a.forEach((v,i)=>{if($("a"+i))$("a"+i).value=v||""});dirty=true}
+try{const D=JSON.parse(localStorage.getItem("bg_fd")||"null");if(D&&D.d===today()){if(D.e){D.a=D.st?D.st.a:null;D.m=null;if(D.st){wlog=D.st.w||[];wsave();wlogRender()}}if(D.a&&!cur().some(v=>v>0)&&D.a.some(v=>v>0)){D.a.forEach((v,i)=>{if($("a"+i))$("a"+i).value=v||""});dirty=true}
  if(D.wv!=null&&D.wv!==""){$("wv").value=D.wv;$("wv").dataset.user=1}if(D.wn)$("wn").value=D.wn;wbtn();
  if(D.m&&cfg.subs[D.m.i]){mOpen(D.m.i);if(D.m.mode)mSet(D.m.mode);$("mv").value=D.m.v||"";$("mn").value=D.m.n||"";$("mx").value=D.m.x||"";mCalc()}render();renderDay()}}catch(e){}
 window.fdReady=1;
