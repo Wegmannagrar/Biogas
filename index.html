@@ -123,7 +123,7 @@ details[open] summary::before{transform:rotate(90deg)}
 
 <div class="card">
 <h2>Gasspeicher</h2>
-<div class="pair"><div><label for="gsh">Gashaube (%)</label><input id="gsh" type="text" inputmode="decimal" autocomplete="off"></div><div><label for="gss">Gassack (%)</label><input id="gss" type="text" inputmode="decimal" autocomplete="off"></div></div>
+<div class="pair"><div><label for="gsh">Gashaube (%)</label><input id="gsh" type="text" inputmode="decimal" autocomplete="off"></div><div><label for="gss">Gassack (%)<span class="mu" id="gssi"></span></label><input id="gss" type="text" inputmode="decimal" autocomplete="off"></div></div>
 <label>Seit der letzten Ablesung lief</label>
 <div class="seg" id="gsm"><button data-m="0">keiner</button><button data-m="1" id="gsm1">180 kW</button><button data-m="2" id="gsm2">530 kW</button><button data-m="3">beide</button></div>
 <div class="pair"><div><label for="gsd">Datum</label><input type="date" id="gsd"></div><div><label for="gst">Uhrzeit</label><input type="time" id="gst"></div></div>
@@ -344,7 +344,7 @@ const $=id=>document.getElementById(id);
 /* ▼▼▼ Bei GitHub-Version: hier die Web-App-Adresse aus Apps Script eintragen (endet auf /exec) ▼▼▼ */
 const API_URL="https://script.google.com/macros/s/AKfycbwB_pjO75izEGA0goq6pfTlWC1g2580q7hX7QuEeZ-hggTeKylLOBgXNlIS5Di197ouGQ/exec";
 /* ▲▲▲ */
-const APPV="3.38";
+const APPV="3.39";
 const GAS=!!(window.google&&google.script&&google.script.run);
 const GS=GAS||/^https:\/\/script\.google\.com\//.test(API_URL);
 const URLKEY=/*KEY_AUS_LINK*/"",URLPIN=/*PIN_AUS_LINK*/"";let pin=URLKEY||URLPIN;if(!pin){try{pin=localStorage.getItem("bg_key")||localStorage.getItem("bg_pin")||""}catch(e){}}let asking=false,appUrl="";
@@ -527,7 +527,8 @@ function zwList(){zwNow();const L=zw.slice().sort((a,b)=>(b.d+b.t).localeCompare
  document.querySelectorAll("#zwlist [data-ze]").forEach(b=>b.onclick=()=>{const x=zw.find(y=>y.id===b.dataset.ze);if(!x)return;zEdit=x.id;$("zwd").value=x.d;$("zwt").value=x.t||"";$("zwv").value=String(Math.round(x.v));$("zwsave").textContent="Änderung speichern";$("zwcan").hidden=false});
  document.querySelectorAll("#zwlist [data-zd]").forEach(b=>b.onclick=()=>{if(!confirm("Messung löschen?"))return;const id=b.dataset.zd;zw=zw.filter(x=>x.id!==id);cache();zwList();if(GS)run("deleteZw",id).then(apply).catch(fail)})}
 // ---- Gasspeicher
-const gsV=x=>(x.h!=null?x.h/100*(cfg.gsH||0):0)+(x.s!=null?x.s/100*(cfg.gsS||0):0);
+const gsSk=x=>x.h!=null&&x.h>0?100:x.s;
+const gsV=x=>(x.h!=null?x.h/100*(cfg.gsH||0):0)+(gsSk(x)!=null?gsSk(x)/100*(cfg.gsS||0):0);
 const gsCap=()=>(cfg.gsH||0)+(cfg.gsS||0);
 const gsKw=m=>[0,cfg.mk1||0,cfg.mk2||0,(cfg.mk1||0)+(cfg.mk2||0)][+m||0];
 function gsCons(m){const g=gasAt(today())||{ch4:55};return gsKw(m)/(cfg.hu*cfg.eta/100)/(g.ch4/100)}
@@ -541,7 +542,7 @@ function gsRender(){if(!$("gsout"))return;gsNow();$("gsm1").textContent=f(cfg.mk
  const L=gsSorted();if(gsSel==null)gsSel=L.length?(+L[L.length-1].m||0):2;document.querySelectorAll("#gsm [data-m]").forEach(b=>b.className=+b.dataset.m===gsSel?"on":"");
  if(!L.length){$("gsout").innerHTML='<p class="mu">Noch kein Gasstand eingetragen.</p>';return}
  const z=L[L.length-1],V=gsV(z),cap=gsCap();let h=`<div class="res"><div class="kpi"><b>${f(V)} m³</b><span>Gas im Speicher (${z.t} Uhr) · ${cap?f(V/cap*100):"–"} %</span></div>`;
- const full=x=>(x.h!=null&&x.h>=99)||(x.s!=null&&x.s>=99);
+ const full=x=>x.h!=null&&x.h>=99;
  if(L.length>1){const a=L[L.length-2],dt=(gsTs(z)-gsTs(a))/36e5;
   if(dt>=0.25&&dt<=8){const prod=(gsV(z)-gsV(a))/dt+gsCons(z.m),net=prod-gsCons(gsSel);
    h+=`<div class="kpi"><b>${full(z)?"≥ ":""}${f(Math.max(0,prod))} m³/h</b><span>Gas kommt nach (${a.t}–${z.t} Uhr) · ≈ ${f(Math.max(0,prod)*24)} m³/Tag</span></div>`;
@@ -550,9 +551,9 @@ function gsRender(){if(!$("gsout"))return;gsNow();$("gsm1").textContent=f(cfg.mk
   else h+=`<div class="kpi"><b>–</b><span>Für die Nachlieferung: zweite Ablesung 15 min bis 8 h nach der ersten</span></div>`}
  h+="</div>";if(full(z))h+='<p class="mu" style="color:#e65100">Speicher voll – die Fackel läuft vermutlich.</p>';
  const R=L.filter(x=>x.d>=dS(today(),1)).slice(-6).reverse();
- h+=R.map(x=>`<div class="chip"><div><b>${x.d===today()?"heute":"gestern"} ${esc(x.t)}</b><div class="mu">Haube ${x.h!=null?f(x.h)+" %":"–"} · Sack ${x.s!=null?f(x.s)+" %":"–"} · ${f(gsV(x))} m³ · ${["kein Motor",f(cfg.mk1)+" kW",f(cfg.mk2)+" kW","beide"][+x.m||0]}</div></div><div style="display:flex;gap:6px"><button class="x" data-gse="${esc(x.id)}">✎</button><button class="x" data-gsd="${esc(x.id)}">✕</button></div></div>`).join("");
+ h+=R.map(x=>`<div class="chip"><div><b>${x.d===today()?"heute":"gestern"} ${esc(x.t)}</b><div class="mu">Haube ${x.h!=null?f(x.h)+" %":"–"} · Sack ${gsSk(x)!=null?f(gsSk(x))+" %":"–"} · ${f(gsV(x))} m³ · ${["kein Motor",f(cfg.mk1)+" kW",f(cfg.mk2)+" kW","beide"][+x.m||0]}</div></div><div style="display:flex;gap:6px"><button class="x" data-gse="${esc(x.id)}">✎</button><button class="x" data-gsd="${esc(x.id)}">✕</button></div></div>`).join("");
  $("gsout").innerHTML=h;
- document.querySelectorAll("#gsout [data-gse]").forEach(b=>b.onclick=()=>{const x=gsm.find(y=>y.id===b.dataset.gse);if(!x)return;gsEdit=x.id;$("gsh").value=x.h!=null?String(x.h).replace(".",","):"";$("gss").value=x.s!=null?String(x.s).replace(".",","):"";$("gsd").value=x.d;$("gst").value=x.t;gsSel=+x.m||0;document.querySelectorAll("#gsm [data-m]").forEach(c=>c.className=+c.dataset.m===gsSel?"on":"");$("gssave").textContent="Änderung speichern"});
+ document.querySelectorAll("#gsout [data-gse]").forEach(b=>b.onclick=()=>{const x=gsm.find(y=>y.id===b.dataset.gse);if(!x)return;gsEdit=x.id;$("gsh").value=x.h!=null?String(x.h).replace(".",","):"";$("gss").value=x.s!=null?String(x.s).replace(".",","):"";gssLock();$("gsd").value=x.d;$("gst").value=x.t;gsSel=+x.m||0;document.querySelectorAll("#gsm [data-m]").forEach(c=>c.className=+c.dataset.m===gsSel?"on":"");$("gssave").textContent="Änderung speichern"});
  document.querySelectorAll("#gsout [data-gsd]").forEach(b=>b.onclick=()=>{if(!confirm("Gasstand löschen?"))return;const id=b.dataset.gsd;gsm=gsm.filter(x=>x.id!==id);cache();gsRender();table();if(GS)run("deleteGs",id).then(apply).catch(fail)})}
 function gzNow(){let v=null;[0,1].forEach(j=>{const k=dS(today(),j);if(v==null&&cfg.gz[k]!=null)v=cfg.gz[k]});return v}
 function gzRender(){const d=$("date").value,v=cfg.gz[d];document.querySelectorAll("#gzs button").forEach(b=>b.className=(v!=null&&+b.dataset.gz===v)?"on":"")}
@@ -879,12 +880,14 @@ $("zwsave").onclick=()=>{let v=num($("zwv").value);if(v!=null)v=Math.round(v);if
  const ed=zEdit,x={id:ed||Date.now().toString(36)+Math.random().toString(36).slice(2,6),d:$("zwd").value||today(),t:$("zwt").value||hhmm(),v};
  zw=zw.filter(y=>y.id!==x.id);zw.push(x);cache();zwReset();zwList();$("zwmsg").textContent=ed?"✓ Änderung gespeichert":"✓ Gespeichert";setTimeout(()=>$("zwmsg").textContent="",3000);
  if(GS)run("addZw",x).then(apply).catch(fail)};
-["gsd","gst"].forEach(k=>$(k).addEventListener("input",()=>{$(k).dataset.user=1}));setInterval(()=>{if(!gsEdit)gsNow()},20000);
+["gsd","gst"].forEach(k=>$(k).addEventListener("input",()=>{$(k).dataset.user=1}));
+function gssLock(){const h=num($("gsh").value),on=h!=null&&h>0;$("gss").readOnly=on;$("gss").style.opacity=on?.55:1;if(on)$("gss").value="100";else if($("gss").value==="100"&&$("gss").dataset.auto)$("gss").value="";$("gss").dataset.auto=on?1:"";$("gssi").textContent=on?" – voll, solange Gas in der Haube ist":""}
+$("gsh").addEventListener("input",gssLock);setInterval(()=>{if(!gsEdit)gsNow()},20000);
 document.querySelectorAll("#gsm [data-m]").forEach(b=>b.onclick=()=>{gsSel=+b.dataset.m;document.querySelectorAll("#gsm [data-m]").forEach(c=>c.className=c===b?"on":"")});
 $("gssave").onclick=()=>{const h=num($("gsh").value),sk=num($("gss").value);if(h==null&&sk==null){$("gsmsg").textContent="Bitte mindestens einen Wert in % eintragen.";return}
  if((h!=null&&(h<0||h>100))||(sk!=null&&(sk<0||sk>100))){$("gsmsg").textContent="Werte bitte zwischen 0 und 100 %.";return}
- const ed=gsEdit,x={id:ed||Date.now().toString(36)+Math.random().toString(36).slice(2,6),d:$("gsd").value||today(),t:$("gst").value||hhmm(),h,s:sk,m:String(gsSel||0)};
- gsm=gsm.filter(y=>y.id!==x.id);gsm.push(x);cache();gsEdit=null;$("gsh").value="";$("gss").value="";delete $("gsd").dataset.user;delete $("gst").dataset.user;$("gssave").textContent="Gasstand speichern";gsRender();table();
+ const ed=gsEdit,x={id:ed||Date.now().toString(36)+Math.random().toString(36).slice(2,6),d:$("gsd").value||today(),t:$("gst").value||hhmm(),h,s:h!=null&&h>0?100:sk,m:String(gsSel||0)};
+ gsm=gsm.filter(y=>y.id!==x.id);gsm.push(x);cache();gsEdit=null;$("gsh").value="";$("gss").value="";gssLock();delete $("gsd").dataset.user;delete $("gst").dataset.user;$("gssave").textContent="Gasstand speichern";gsRender();table();
  $("gsmsg").textContent=`✓ ${f(gsV(x))} m³ gespeichert`;setTimeout(()=>$("gsmsg").textContent="",3000);
  if(GS)run("addGs",x).then(apply).catch(fail)};
 $("rz").oninput=()=>{$("rz").dataset.user=1;rec()};$("rp").oninput=rec;
