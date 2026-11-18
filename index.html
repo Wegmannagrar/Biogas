@@ -104,14 +104,17 @@ details[open] summary::before{transform:rotate(90deg)}
 <button id="wadd">Zur Fütterung addieren</button>
 <div id="wlog"></div>
 </div>
-<h3>Mengen dieser Fütterung</h3>
-<div id="inputs"></div>
+<details id="fmeng" style="margin-top:12px"><summary style="font-weight:600">Mengen dieser Fütterung <span class="mu" id="fsum"></span></summary>
+<div id="inputs" style="margin-top:6px"></div>
+</details>
 <div class="stack"><label for="fbem">Bemerkung</label><textarea id="fbem" rows="1" placeholder="optional"></textarea></div>
 <div class="kpi bad" id="fwarn" hidden style="display:none"></div>
 <p class="mu" id="fmsg"></p>
 <button class="g" id="fex" style="margin:0 0 10px" hidden>⚡ Extra-Fütterung</button>
 <button id="save">Fütterung speichern</button>
 <button class="g" id="fcancel" hidden>Bearbeiten abbrechen</button>
+<h3 id="dayh" style="margin-top:16px">Fütterungen am …</h3>
+<div id="flist"></div>
 </div>
 
 <div class="card">
@@ -125,8 +128,8 @@ details[open] summary::before{transform:rotate(90deg)}
 <h2>Gasspeicher</h2>
 <div class="pair"><div><label for="gsh">Gashaube (%)</label><input id="gsh" type="text" inputmode="decimal" autocomplete="off"></div><div><label for="gss">Gassack (%)</label><input id="gss" type="text" inputmode="decimal" autocomplete="off"></div></div>
 <p class="mu" id="gssi" style="margin:-4px 0 8px"></p>
-<label>Seit der letzten Ablesung lief</label>
-<div class="seg" id="gsm"><button data-m="0">keiner</button><button data-m="1" id="gsm1">180 kW</button><button data-m="2" id="gsm2">530 kW</button><button data-m="3">beide</button></div>
+<div id="gsmw"><label>Seit der letzten Ablesung lief</label>
+<div class="seg" id="gsm"><button data-m="0">keiner</button><button data-m="1" id="gsm1">180 kW</button><button data-m="2" id="gsm2">530 kW</button><button data-m="3">beide</button></div></div>
 <div class="pair"><div><label for="gsd">Datum</label><input type="date" id="gsd"></div><div><label for="gst">Uhrzeit</label><input type="time" id="gst"></div></div>
 <p class="mu" id="gsmsg"></p>
 <button id="gssave">Gasstand speichern</button>
@@ -134,8 +137,7 @@ details[open] summary::before{transform:rotate(90deg)}
 </div>
 
 <div class="card">
-<h2 id="dayh">Tag</h2>
-<div id="flist"></div>
+<h2 id="dayh2">Tag</h2>
 <h3 id="prevh">Tagessumme</h3>
 <div id="mix" style="margin-bottom:8px"></div>
 <div class="res" id="res"></div>
@@ -145,8 +147,8 @@ details[open] summary::before{transform:rotate(90deg)}
 <div class="row"><label for="act"><span id="actl">Erzeugt (kWh)</span><div class="mu">wie bei e2m geplant, inkl. Netzverlust</div></label><input id="act" type="text" inputmode="numeric" pattern="[0-9]*" placeholder="Ist" autocomplete="off"></div>
 <div class="row"><label for="ann"><span id="annl">Angemeldet (kWh)</span><div class="mu">eure Planung bei e2m</div></label><input id="ann" type="text" inputmode="numeric" pattern="[0-9]*" placeholder="Anmeldung" autocomplete="off"></div>
 <div class="row"><label for="annx"><span id="annxl">Angemeldet für morgen (kWh)</span><div class="mu" id="annxs"></div></label><input id="annx" type="text" inputmode="numeric" pattern="[0-9]*" placeholder="Anmeldung" autocomplete="off"></div>
-<div class="row" style="margin-top:4px"><label>Gas im Speicher</label></div>
-<div class="seg" id="gzs"><button data-gz="-1">zu wenig</button><button data-gz="0">passt</button><button data-gz="1">zu viel</button></div>
+<div class="row" style="margin-top:4px" hidden><label>Gas im Speicher</label></div>
+<div class="seg" id="gzs" hidden><button data-gz="-1">zu wenig</button><button data-gz="0">passt</button><button data-gz="1">zu viel</button></div>
 <div class="stack"><label for="dnote">Notiz zum Tag</label><textarea id="dnote" rows="2" placeholder="z. B. Nachgärer wieder voll"></textarea></div>
 <button class="g" id="dsave">Tageswerte speichern</button>
 </div>
@@ -345,7 +347,7 @@ const $=id=>document.getElementById(id);
 /* ▼▼▼ Bei GitHub-Version: hier die Web-App-Adresse aus Apps Script eintragen (endet auf /exec) ▼▼▼ */
 const API_URL="https://script.google.com/macros/s/AKfycbwB_pjO75izEGA0goq6pfTlWC1g2580q7hX7QuEeZ-hggTeKylLOBgXNlIS5Di197ouGQ/exec";
 /* ▲▲▲ */
-const APPV="3.42";
+const APPV="3.46";
 const GAS=!!(window.google&&google.script&&google.script.run);
 const GS=GAS||/^https:\/\/script\.google\.com\//.test(API_URL);
 const URLKEY=/*KEY_AUS_LINK*/"",URLPIN=/*PIN_AUS_LINK*/"";let pin=URLKEY||URLPIN;if(!pin){try{pin=localStorage.getItem("bg_key")||localStorage.getItem("bg_pin")||""}catch(e){}}let asking=false,appUrl="";
@@ -395,7 +397,7 @@ function mix(a){a=a||[];let t=0,n=0;cfg.subs.forEach((s,i)=>{const v=a[i]||0;t+=
 function calc(a){a=a||[];let bg=0,ch=0;cfg.subs.forEach((s,i)=>{const q=(a[i]||0)/1000*s.y*(cfg.kal||1);bg+=q;ch+=q*s.m/100});
 const kwh=ch*cfg.hu;return{bg,ch,kwh,el:kwh*cfg.eta/100,th:kwh*cfg.etat/100}}
 function cur(){return cfg.subs.map((_,i)=>{const e=$("a"+i);return e?parseFloat(e.value.replace(",","."))||0:0})}
-function render(){if(window.fdReady)fdSave();const gi=gI();if(gi>=0&&$("grow"))$("grow").hidden=!((cur()[gi]||0)>0);const P=preview(),r=calc(P);const m=mix(P);const ft=cur().reduce((x,y)=>x+y,0);$("bar").hidden=!(ft>0)||$("tf").hidden;$("bartxt").textContent=(editId?"Änderung":"Fütterung")+" nicht gespeichert · "+f(ft)+" kg";const bad=m.t>0&&m.pw<WD();$("mix").innerHTML=`<div class="res"><div class="kpi"><b>${f(m.t)} kg</b><span>Gesamteintrag</span></div><div class="kpi${bad?" bad":""}"><b>${f(m.pn,1)} % / ${f(m.pw,1)} %</b><span>NaWaRo / Wirtschaftsdünger</span></div><div class="kpi"><b>${f(r.el)} kWh</b><span>Strom (netto)</span></div><div class="kpi"><b>${f(r.el/24,1)} kW</b><span>Ø Leistung</span></div>${bad?`<div class="kpi bad" style="grid-column:1/-1"><b>⚠️ Wirtschaftsdünger unter ${WD()} %</b></div>`:""}</div>`;
+function render(){if(window.fdReady)fdSave();if($("fsum")){const t=cur().reduce((a,b)=>a+(b||0),0);$("fsum").textContent=t>0?"· "+f(t)+" kg":"· noch leer"}const gi=gI();if(gi>=0&&$("grow"))$("grow").hidden=!((cur()[gi]||0)>0);const P=preview(),r=calc(P);const m=mix(P);const ft=cur().reduce((x,y)=>x+y,0);$("bar").hidden=!(ft>0)||$("tf").hidden;$("bartxt").textContent=(editId?"Änderung":"Fütterung")+" nicht gespeichert · "+f(ft)+" kg";const bad=m.t>0&&m.pw<WD();$("mix").innerHTML=`<div class="res"><div class="kpi"><b>${f(m.t)} kg</b><span>Gesamteintrag</span></div><div class="kpi${bad?" bad":""}"><b>${f(m.pn,1)} % / ${f(m.pw,1)} %</b><span>NaWaRo / Wirtschaftsdünger</span></div><div class="kpi"><b>${f(r.el)} kWh</b><span>Strom (netto)</span></div><div class="kpi"><b>${f(r.el/24,1)} kW</b><span>Ø Leistung</span></div>${bad?`<div class="kpi bad" style="grid-column:1/-1"><b>⚠️ Wirtschaftsdünger unter ${WD()} %</b></div>`:""}</div>`;
 const fk=cost(P),er=r.el*(cfg.prc||0)/100,D=[["NaWaRo",f(m.n)+" kg"],["Wirtschaftsdünger",f(m.w)+" kg"],["Biogas",f(r.bg)+" m³"],["Methan",f(r.ch)+" m³"],["Energie (Brennstoff)",f(r.kwh)+" kWh"],["Wärme (th.)",f(r.th)+" kWh"]].concat((fk||er)?[["Futterkosten",f(fk)+" €"],["Stromerlös (Soll)",f(er)+" €"],["Erlös − Futter",f(er-fk)+" €"],["Futterkosten je kWh",r.el?f(fk/r.el*100,1)+" ct":"–"]]:[]);
 const op=$("res").querySelector("details")&&$("res").querySelector("details").open;$("res").className="";$("res").innerHTML=`<details${op?" open":""}><summary>Details</summary><div class="res" style="margin-top:6px">${D.map(x=>`<div class="kpi"><b>${x[1]}</b><span>${x[0]}</span></div>`).join("")}</div></details>`;$("eco").innerHTML=""}
 function build(){const keep=dirty?cur():null;
@@ -422,12 +424,12 @@ function brk(a){return cfg.subs.map((s,i)=>(a[i]||0)>0?(isGn(s.n)?"Gülle "+f(a[
 const fwOpen=new Set();
 function wTxt(x){const W=x.w||[];return `<div class="mu" style="margin-top:4px;color:var(--fg)">${W.length?"Waage: "+W.map(e=>`${esc((cfg.subs[e.i]||{n:"?"}).n.replace(/ \(.*\)/,""))} ${e.v!=null?f(e.v):"–"} → ${e.n!=null?f(e.n):"–"}`).join(" · "):"Keine Waagenstände gespeichert."}</div>`}
 function renderDay(){if($("gpm"))gPre();if($("gsout"))gsRender();const d=$("date").value,L=dayFeeds(d),tot=(hist[d]||[]).reduce((x,y)=>x+(y||0),0);
- $("dayh").textContent="Fütterungen am "+d.split("-").reverse().join(".")+((cfg.nt||{})[d]?"  📝 "+cfg.nt[d]:"");
+ $("dayh").textContent="Fütterungen am "+d.split("-").reverse().join(".");$("dayh2").textContent="Tag "+d.split("-").reverse().join(".")+((cfg.nt||{})[d]?"  📝 "+cfg.nt[d]:"");
  let h=L.map((x,j)=>`<div class="chip" style="align-items:flex-start"><div data-fw="${esc(x.id)}" style="cursor:pointer;flex:1"><b>${x.t?esc(x.t)+" Uhr":"Tagessumme"}</b>${isEx(x)?' <b style="color:#e65100">⚡ Extra</b>':""} · ${f(x.a.reduce((p,q)=>p+(q||0),0))} kg${bemTxt(x)?` <span class="mu">(${esc(bemTxt(x))})</span>`:""}<div class="mu">${brk(x.a)}${(x.w||[]).length?" · ⚖️":""}</div>${fwOpen.has(x.id)?wTxt(x):""}</div><div style="white-space:nowrap"><button class="x" data-fe="${esc(x.id)}">✎</button><button class="x" data-fd="${esc(x.id)}">✕</button></div></div>`).join("");
  if(!L.length)h=tot>0?`<div class="chip"><div><b>Tagessumme</b> · ${f(tot)} kg <span class="mu">(ohne Einzelfütterungen)</span><div class="mu">${brk(hist[d])}</div></div></div><p class="mu">Neue Fütterungen an diesem Tag werden zu dieser Summe addiert.</p>`:'<p class="mu">Noch keine Fütterung an diesem Tag.</p>';
  else if(L.length>1)h+=`<div class="chip"><b>Summe ${L.length} Fütterungen</b><b>${f(tot)} kg</b></div>`;
  $("flist").innerHTML=h;document.querySelectorAll("#flist [data-fw]").forEach(d=>d.onclick=()=>{const id=d.dataset.fw;fwOpen.has(id)?fwOpen.delete(id):fwOpen.add(id);renderDay()});$("prevh").textContent=cur().some(v=>v>0)?"Tagessumme inkl. der neuen Eingabe":"Tagessumme";
- document.querySelectorAll("#flist button[data-fe]").forEach(b=>b.onclick=()=>{const x=feeds.find(y=>y.id===b.dataset.fe);if(!x)return;if(!editId&&cur().some(v=>v>0)){stash={a:cur(),w:wlog.slice(),ft:$("ft").value,ftu:!!$("ft").dataset.user,b:$("fbem").value,ex:exOn};$("fmsg").textContent="Deine neue, noch nicht gespeicherte Eingabe ("+f(stash.a.reduce((p,q)=>p+q,0))+" kg) ist zurückgestellt und kommt nach dem Bearbeiten wieder."}editId=x.id;cfg.subs.forEach((_,i)=>$("a"+i).value=x.a[i]||"");$("ft").value=x.t||"";$("ft").dataset.user=1;$("fbem").value=bemTxt(x);exSet(isEx(x));wlog=(x.w||[]).map(e=>({i:e.i,v:e.v,n:e.n,kg:e.kg,t:e.t}));wlogRender();dirty=true;$("save").textContent="Änderung speichern";$("fcancel").hidden=false;render();renderDay();scrollTo(0,0)});
+ document.querySelectorAll("#flist button[data-fe]").forEach(b=>b.onclick=()=>{const x=feeds.find(y=>y.id===b.dataset.fe);if(!x)return;if(!editId&&cur().some(v=>v>0)){stash={a:cur(),w:wlog.slice(),ft:$("ft").value,ftu:!!$("ft").dataset.user,b:$("fbem").value,ex:exOn};$("fmsg").textContent="Deine neue, noch nicht gespeicherte Eingabe ("+f(stash.a.reduce((p,q)=>p+q,0))+" kg) ist zurückgestellt und kommt nach dem Bearbeiten wieder."}editId=x.id;if($("fmeng"))$("fmeng").open=true;cfg.subs.forEach((_,i)=>$("a"+i).value=x.a[i]||"");$("ft").value=x.t||"";$("ft").dataset.user=1;$("fbem").value=bemTxt(x);exSet(isEx(x));wlog=(x.w||[]).map(e=>({i:e.i,v:e.v,n:e.n,kg:e.kg,t:e.t}));wlogRender();dirty=true;$("save").textContent="Änderung speichern";$("fcancel").hidden=false;render();renderDay();scrollTo(0,0)});
  document.querySelectorAll("#flist button[data-fd]").forEach(b=>b.onclick=()=>{const x=feeds.find(y=>y.id===b.dataset.fd);if(!x||!confirm(`Fütterung löschen?\n${x.d.split("-").reverse().join(".")} ${x.t||""} · ${f(x.a.reduce((p,q)=>p+(q||0),0))} kg`))return;
   feeds=feeds.filter(y=>y.id!==x.id);hist[x.d]=sumA(dayFeeds(x.d).map(y=>y.a));if(editId===x.id)clearForm();cache();table();renderDay();render();
   if(GS){status("Lösche …");run("deleteFeeding",x.id).then(apply).catch(fail)}})}
@@ -540,10 +542,14 @@ function gsMorning(){const L=gsSorted().filter(x=>x.d===today());if(!L.length)re
 let gsSel=null,gsEdit=null;
 function gsNow(){if(gsEdit)return;if(!$("gsd").dataset.user)$("gsd").value=today();if(!$("gst").dataset.user&&document.activeElement!==$("gst"))$("gst").value=hhmm()}
 // Vorschau: Speicher Viertelstunde für Viertelstunde nach e2m-Fahrplan
+const gsDk=ts=>{const d=new Date(ts);return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")};
+// mittlerer Gasverbrauch (m³/h) zwischen zwei Zeitpunkten laut e2m-Fahrplan; null wenn der Plan Lücken hat
+function gsPlanCons(t0,t1){const k=gsKwhM3(),vf=(cfg.vf>50&&cfg.vf<=100?cfg.vf:100)/100;let sum=0,h=0;for(let t=t0;t<t1;){const nx=Math.min(t1,Math.floor(t/9e5)*9e5+9e5),d=new Date(t),a=plan[gsDk(t)],so=a?a[d.getHours()*4+Math.floor(d.getMinutes()/15)]:null;if(so==null)return null;const dh=(nx-t)/36e5;sum+=so/vf/k*dh;h+=dh;t=nx}return h?sum/h:null}
+const gsPlanNow=()=>{const d=new Date(),a=plan[gsDk(Date.now())];return !!(a&&a[d.getHours()*4+Math.floor(d.getMinutes()/15)]!=null)};
 function gsSim(z,prodMeas){const t0=gsTs(z);if(Date.now()-t0>12*36e5)return{err:"alt"};const k=gsKwhM3(),vf=(cfg.vf>50&&cfg.vf<=100?cfg.vf:100)/100,cap=gsCap();
  const P=prodMeas!=null?prodMeas:progPd?progPd/24/k:null;if(!P)return{err:"prod"};
  let V=gsV(z),t=Math.ceil(t0/9e5)*9e5,first=(t-t0)/36e5,pts=[[t0,V]],fullAt=null,over=0,fq=0,emptyAt=null,short=0,mn=V,mnAt=t0,mx=V,mxAt=t0,n=0;
- const dk=ts=>{const d=new Date(ts);return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")};
+ const dk=gsDk;const _x=ts=>{const d=new Date(ts);return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")};
  const sol=ts=>{const a=plan[dk(ts)],d=new Date(ts);return a?a[d.getHours()*4+Math.floor(d.getMinutes()/15)]:null};
  if(first>0){const s0=sol(t0);if(s0==null)return{err:"plan"};V+=(P-s0/vf/k)*first}
  while(n<96){const so=sol(t);if(so==null)break;V+=(P-so/vf/k)/4;t+=9e5;n++;
@@ -554,30 +560,36 @@ function tlab(ts){const d=new Date(ts),td=new Date();const day=d.toDateString()=
 function gsSimHtml(S){if(S.err)return S.err==="plan"?'<p class="mu">Für die Vorschau den e2m-Fahrplan importieren (Messdaten-CSV mit den nächsten Tagen, unter Einstellungen).</p>':S.err==="alt"?'<p class="mu">Für die Vorschau einen aktuellen Gasstand eintragen (nicht älter als 12 Stunden).</p>':"";
  const W=320,H=70,x0=S.pts[0][0],x1=S.pts[S.pts.length-1][0],X=t=>(t-x0)/(x1-x0||1)*W,Y=v=>H-v/S.cap*H;
  const line=S.pts.map(p=>X(p[0]).toFixed(1)+","+Y(p[1]).toFixed(1)).join(" ");
- const ticks=[];for(let t=Math.ceil(x0/216e5)*216e5;t<x1;t+=216e5)ticks.push(`<line x1="${X(t)}" x2="${X(t)}" y1="0" y2="${H}" stroke="currentColor" stroke-opacity=".12"/><text x="${X(t)+2}" y="${H-3}" font-size="9" fill="currentColor" fill-opacity=".55">${new Date(t).getHours()} Uhr</text>`);
- let h=`<h3 style="margin:12px 0 4px">Vorschau bis ${tlab(S.end)}</h3><svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;display:block;color:var(--fg)" role="img" aria-label="Gasspeicher-Vorschau">${ticks.join("")}<line x1="0" x2="${W}" y1="1" y2="1" stroke="#e65100" stroke-dasharray="4 3" stroke-opacity=".6"/><polyline points="${line}" fill="none" stroke="var(--ac)" stroke-width="2.2" stroke-linejoin="round"/></svg>`;
+ const ticks=[];for(let t=Math.ceil(x0/36e5)*36e5;t<x1;t+=36e5){const hh=new Date(t).getHours(),lab=hh%2===0;ticks.push(`<line x1="${X(t)}" x2="${X(t)}" y1="0" y2="${H}" stroke="currentColor" stroke-opacity="${lab?.16:.07}"/>`+(lab&&X(t)<W-10&&X(t)>8?`<text x="${X(t)}" y="${H+10}" font-size="8" text-anchor="middle" fill="currentColor" fill-opacity=".6">${hh}</text>`:""))}
+ let h=`<h3 style="margin:12px 0 4px">Vorschau bis ${tlab(S.end)}</h3><svg viewBox="0 0 ${W} ${H+12}" style="width:100%;height:auto;display:block;color:var(--fg)" role="img" aria-label="Gasspeicher-Vorschau">${ticks.join("")}<line x1="0" x2="${W}" y1="1" y2="1" stroke="#e65100" stroke-dasharray="4 3" stroke-opacity=".6"/><polyline points="${line}" fill="none" stroke="var(--ac)" stroke-width="2.2" stroke-linejoin="round"/><g id="gsCur" style="display:none"><line y1="0" y2="${H}" stroke="currentColor" stroke-opacity=".5"/><circle r="3.5" fill="var(--ac)" stroke="#fff" stroke-width="1.5"/></g><rect width="${W}" height="${H}" fill="transparent" id="gsHit" style="cursor:crosshair;touch-action:pan-y"/></svg><p class="mu" id="gsTip" style="margin:2px 0 4px;min-height:1.2em">Auf die Kurve tippen für den Füllstand zu einer Uhrzeit.</p>`;window._gsS={S,W,H,X,Y};
  const L=[];
  if(S.fullAt)L.push(`<b style="color:#e65100">Voll ab ca. ${tlab(S.fullAt)}</b> → Fackel ca. ${f(S.fq/4,1)} h (≈ ${f(S.over)} m³ Biogas ≈ ${f(S.over*S.k)} kWh)`);
  else L.push(`Wird nicht voll – höchstens ${f(S.mx/S.cap*100)} % (${tlab(S.mxAt)})`);
  if(S.emptyAt)L.push(`<b style="color:#d32f2f">⚠️ Leer ab ca. ${tlab(S.emptyAt)}</b> – es fehlen ≈ ${f(S.short)} m³ (≈ ${f(S.short*S.k)} kWh)`);
  else L.push(`Am leersten: ${tlab(S.mnAt)} mit ca. ${f(S.mn)} m³ (${f(S.mn/S.cap*100)} %)`);
- h+=L.map(x=>`<p class="mu" style="margin:4px 0;color:var(--fg)">${x}</p>`).join("")+`<p class="mu">Gerechnet mit ${f(S.P)} m³/h Gasnachlieferung (${S.meas?"aus den letzten Ablesungen":"aus der Fütterung"}) und dem e2m-Fahrplan. Wenn die Motoren anders laufen als geplant, stimmt die Vorschau nicht mehr.</p>`;return h}
-function gsRender(){if(!$("gsout"))return;gsNow();$("gsm1").textContent=f(cfg.mk1||0)+" kW";$("gsm2").textContent=f(cfg.mk2||0)+" kW";
+ const HR=S.pts.filter(p=>new Date(p[0]).getMinutes()===0);
+ h+=L.map(x=>`<p class="mu" style="margin:4px 0;color:var(--fg)">${x}</p>`).join("")+`<details style="margin:6px 0"><summary>Stunde für Stunde</summary><table style="width:100%;margin-top:4px"><tr><th style="text-align:left">Uhrzeit</th><th>Gas</th><th>Füllstand</th><th>Motoren lt. Plan</th></tr>${HR.map(p=>{const d=new Date(p[0]),a=plan[gsDk(p[0])],so=a?a[d.getHours()*4]:null;return `<tr${p[1]<=0?' style="color:#d32f2f"':p[1]>=S.cap?' style="color:#e65100"':""}><td style="text-align:left">${tlab(p[0])}</td><td>${f(p[1])} m³</td><td>${f(p[1]/S.cap*100)} %</td><td>${so!=null?f(so)+" kW":"–"}</td></tr>`}).join("")}</table></details><p class="mu">Gerechnet mit ${f(S.P)} m³/h Gasnachlieferung (${S.meas?"aus den letzten Ablesungen":"aus der Fütterung"}) und dem e2m-Fahrplan. Wenn die Motoren anders laufen als geplant, stimmt die Vorschau nicht mehr.</p>`;return h}
+function gsCurBind(){const hit=document.getElementById("gsHit");if(!hit||!window._gsS)return;const {S,W,X,Y}=window._gsS,svg=hit.ownerSVGElement;
+ const show=e=>{const b=svg.getBoundingClientRect(),cx=((e.touches?e.touches[0].clientX:e.clientX)-b.left)/b.width*W;let best=S.pts[0],bd=1e9;S.pts.forEach(p=>{const d=Math.abs(X(p[0])-cx);if(d<bd){bd=d;best=p}});
+  const g=document.getElementById("gsCur");g.style.display="";g.querySelector("line").setAttribute("x1",X(best[0]));g.querySelector("line").setAttribute("x2",X(best[0]));const c=g.querySelector("circle");c.setAttribute("cx",X(best[0]));c.setAttribute("cy",Y(best[1]));
+  document.getElementById("gsTip").innerHTML=`<b style="color:var(--fg)">${tlab(best[0])} Uhr: ${f(best[1]/S.cap*100)} %</b> · ${f(best[1])} m³`};
+ hit.addEventListener("pointerdown",show);hit.addEventListener("pointermove",e=>{if(e.pointerType==="mouse"||e.buttons)show(e)});hit.addEventListener("touchmove",show,{passive:true})}
+function gsRender(){if(!$("gsout"))return;gsNow();if($("gsmw"))$("gsmw").hidden=gsPlanNow();$("gsm1").textContent=f(cfg.mk1||0)+" kW";$("gsm2").textContent=f(cfg.mk2||0)+" kW";
  const L=gsSorted();if(gsSel==null)gsSel=L.length?(+L[L.length-1].m||0):2;document.querySelectorAll("#gsm [data-m]").forEach(b=>b.className=+b.dataset.m===gsSel?"on":"");
  if(!L.length){$("gsout").innerHTML='<p class="mu">Noch kein Gasstand eingetragen.</p>';return}
  const z=L[L.length-1],V=gsV(z),cap=gsCap();let h=`<div class="res"><div class="kpi"><b>${f(V)} m³</b><span>Gas im Speicher (${z.t} Uhr) · ${cap?f(V/cap*100):"–"} %</span></div>`;
  const full=x=>x.h!=null&&x.h>=99;
  let pm=null;const SP=Object.keys(plan).length>0;
  if(L.length>1){const a=L[L.length-2],dt=(gsTs(z)-gsTs(a))/36e5;
-  if(dt>=0.25&&dt<=8){const prod=(gsV(z)-gsV(a))/dt+gsCons(z.m),net=prod-gsCons(gsSel);if(!full(z)&&prod>0&&dt>=2)pm=prod;
+  if(dt>=0.25&&dt<=8){const pc=gsPlanCons(gsTs(a),gsTs(z)),prod=(gsV(z)-gsV(a))/dt+(pc!=null?pc:gsCons(z.m)),net=prod-gsCons(gsSel);if(!full(z)&&prod>0&&dt>=2)pm=prod;
    h+=`<div class="kpi"><b>${full(z)?"≥ ":""}${f(Math.max(0,prod))} m³/h</b><span>Gas kommt nach (${a.t}–${z.t} Uhr) · ≈ ${f(Math.max(0,prod)*24)} m³/Tag</span></div>`;
    if(!SP&&Math.abs(net)>1){const hrs=net<0?V/-net:(cap-V)/net,at=new Date(gsTs(z)+hrs*36e5);
     h+=`<div class="kpi" style="grid-column:1/-1${net<0&&hrs<6?";background:#fff3e0":""}"><b${net<0&&hrs<6?' style="color:#e65100"':""}>${net<0?"leer":"voll"} in ca. ${f(hrs,1)} h</b><span>${net<0?"Speicher":"Speicher"} ${net<0?"leer":"voll"} gegen ${at.toTimeString().slice(0,5)} Uhr${at.getDate()!==new Date().getDate()?" (morgen)":""}, wenn weiter ${gsSel?f(gsKw(gsSel))+" kW":"kein Motor"} laufen · ${net<0?"−":"+"}${f(Math.abs(net))} m³/h</span></div>`}}
   else h+=`<div class="kpi"><b>–</b><span>Für die Nachlieferung: zweite Ablesung 15 min bis 8 h nach der ersten</span></div>`}
  h+="</div>";if(full(z))h+='<p class="mu" style="color:#e65100">Speicher voll – die Fackel läuft vermutlich.</p>';if(SP)h+=gsSimHtml(gsSim(z,pm));
  const R=L.filter(x=>x.d>=dS(today(),1)).slice(-6).reverse();
- h+=R.map(x=>`<div class="chip"><div><b>${x.d===today()?"heute":"gestern"} ${esc(x.t)}</b><div class="mu">Haube ${x.h!=null?f(x.h)+" %":"–"} · Sack ${gsSk(x)!=null?f(gsSk(x))+" %":"–"} · ${f(gsV(x))} m³ · ${["kein Motor",f(cfg.mk1)+" kW",f(cfg.mk2)+" kW","beide"][+x.m||0]}</div></div><div style="display:flex;gap:6px"><button class="x" data-gse="${esc(x.id)}">✎</button><button class="x" data-gsd="${esc(x.id)}">✕</button></div></div>`).join("");
- $("gsout").innerHTML=h;
+ h+=`<details style="margin-top:8px"><summary>Letzte Ablesungen (${R.length})</summary>`+R.map(x=>`<div class="chip"><div><b>${x.d===today()?"heute":"gestern"} ${esc(x.t)}</b><div class="mu">Haube ${x.h!=null?f(x.h)+" %":"–"} · Sack ${gsSk(x)!=null?f(gsSk(x))+" %":"–"} · ${f(gsV(x))} m³</div></div><div style="display:flex;gap:6px"><button class="x" data-gse="${esc(x.id)}">✎</button><button class="x" data-gsd="${esc(x.id)}">✕</button></div></div>`).join("")+"</details>";
+ const op=[...$("gsout").querySelectorAll("details")].map(d=>d.querySelector("summary").textContent.slice(0,8)+(d.open?1:0));$("gsout").innerHTML=h;$("gsout").querySelectorAll("details").forEach(d=>{if(op.indexOf(d.querySelector("summary").textContent.slice(0,8)+1)>=0)d.open=true});gsCurBind();
  document.querySelectorAll("#gsout [data-gse]").forEach(b=>b.onclick=()=>{const x=gsm.find(y=>y.id===b.dataset.gse);if(!x)return;gsEdit=x.id;$("gsh").value=x.h!=null?String(x.h).replace(".",","):"";$("gss").value=x.s!=null?String(x.s).replace(".",","):"";$("gss").dataset.user=1;gssLock();$("gsd").value=x.d;$("gst").value=x.t;gsSel=+x.m||0;document.querySelectorAll("#gsm [data-m]").forEach(c=>c.className=+c.dataset.m===gsSel?"on":"");$("gssave").textContent="Änderung speichern"});
  document.querySelectorAll("#gsout [data-gsd]").forEach(b=>b.onclick=()=>{if(!confirm("Gasstand löschen?"))return;const id=b.dataset.gsd;gsm=gsm.filter(x=>x.id!==id);cache();gsRender();table();if(GS)run("deleteGs",id).then(apply).catch(fail)})}
 function gzNow(){let v=null;[0,1].forEach(j=>{const k=dS(today(),j);if(v==null&&cfg.gz[k]!=null)v=cfg.gz[k]});return v}
